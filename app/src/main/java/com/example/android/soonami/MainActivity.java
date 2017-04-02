@@ -18,6 +18,7 @@ package com.example.android.soonami;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -45,8 +46,7 @@ public class MainActivity extends AppCompatActivity {
 
     /** URL to query the USGS dataset for earthquake information */
     private static final String USGS_REQUEST_URL =
-            "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2012-01-01&endtime=2012-12-01&minmagnitude=6";
-
+            "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2014-01-01&endtime=2014-12-01&minmagnitude=7";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -155,6 +155,9 @@ public class MainActivity extends AppCompatActivity {
         private String makeHttpRequest(URL url) throws IOException {
             String jsonResponse = "";
             HttpURLConnection urlConnection = null;
+            if(url == null){
+                return jsonResponse;
+            }
             InputStream inputStream = null;
             try {
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -162,9 +165,15 @@ public class MainActivity extends AppCompatActivity {
                 urlConnection.setReadTimeout(10000 /* milliseconds */);
                 urlConnection.setConnectTimeout(15000 /* milliseconds */);
                 urlConnection.connect();
-                inputStream = urlConnection.getInputStream();
-                jsonResponse = readFromStream(inputStream);
+                int responseCode = urlConnection.getResponseCode();
+                if(responseCode==200){
+                    inputStream = urlConnection.getInputStream();
+                    jsonResponse = readFromStream(inputStream);
+                }else{
+                    Log.e(LOG_TAG,"Error response code: "+responseCode);
+                }
             } catch (IOException e) {
+                Log.e(LOG_TAG,"Problem in getting jsonResponse",e);
                 // TODO: Handle the exception
             } finally {
                 if (urlConnection != null) {
@@ -201,6 +210,9 @@ public class MainActivity extends AppCompatActivity {
          * about the first earthquake from the input earthquakeJSON string.
          */
         private Event extractFeatureFromJson(String earthquakeJSON) {
+            if (TextUtils.isEmpty(earthquakeJSON)) {
+                return null;
+            }
             try {
                 JSONObject baseJsonResponse = new JSONObject(earthquakeJSON);
                 JSONArray featureArray = baseJsonResponse.getJSONArray("features");
